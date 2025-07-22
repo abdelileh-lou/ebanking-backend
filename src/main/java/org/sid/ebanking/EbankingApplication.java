@@ -1,9 +1,6 @@
 package org.sid.ebanking;
 
-import org.sid.ebanking.entities.AccountOperation;
-import org.sid.ebanking.entities.CurrentAccount;
-import org.sid.ebanking.entities.Customer;
-import org.sid.ebanking.entities.SavingAccount;
+import org.sid.ebanking.entities.*;
 import org.sid.ebanking.enums.AccountStatus;
 import org.sid.ebanking.enums.OperationType;
 import org.sid.ebanking.repositories.AccountOperationRepository;
@@ -31,7 +28,34 @@ public class EbankingApplication {
 		SpringApplication.run(EbankingApplication.class, args);
 	}
 
+
 	@Bean
+	CommandLineRunner commandLineRunner(BankAccountRepository bankAccountRepository, AccountOperationRepository accountOperationRepository) {
+		return args -> {
+			BankAccount bankAccount = bankAccountRepository.findById("351f1e29-e8a7-4681-a733-4d2452f760e4").orElse(null);
+			if (bankAccount != null) {
+				System.out.println("Bank account not found");
+				System.out.println(bankAccount.getId());
+				System.out.println(bankAccount.getBalance());
+				System.out.println(bankAccount.getStatus());
+				System.out.println(bankAccount.getCreatedAt());
+				System.out.println(bankAccount.getCustomer().getName());
+				System.out.println(bankAccount.getClass().getSimpleName());
+
+				if (bankAccount instanceof CurrentAccount){
+					System.out.println("Over Draft=>"+((CurrentAccount)bankAccount).getOverDraft());
+				}else if (bankAccount instanceof SavingAccount){
+					System.out.println("Rate=>"+((SavingAccount)bankAccount).getInterestRate());
+
+				}
+				bankAccount.getOperations().forEach(op ->{
+					System.out.println(op.getType() + "\t" + op.getOperationDate() + "\t" + op.getAmount());
+				});
+			}
+		};
+	}
+
+//	@Bean
 	CommandLineRunner start(CustomerRepository customerRepository, BankAccountRepository bankAccountRepository, AccountOperationRepository accountOperationRepository) {
 		return args ->{
 			Stream.of("Hassan" , "Yassine" , "Aicha").forEach(name ->{
