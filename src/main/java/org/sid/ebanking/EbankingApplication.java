@@ -3,15 +3,20 @@ package org.sid.ebanking;
 import org.sid.ebanking.entities.*;
 import org.sid.ebanking.enums.AccountStatus;
 import org.sid.ebanking.enums.OperationType;
+import org.sid.ebanking.exceptions.BalanceNotSufficientException;
+import org.sid.ebanking.exceptions.BankAccountNotFoundException;
+import org.sid.ebanking.exceptions.CustomersNotFoundException;
 import org.sid.ebanking.repositories.AccountOperationRepository;
 import org.sid.ebanking.repositories.BankAccountRepository;
 import org.sid.ebanking.repositories.CustomerRepository;
+import org.sid.ebanking.services.BankAccountService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -30,28 +35,35 @@ public class EbankingApplication {
 
 
 	@Bean
-	CommandLineRunner commandLineRunner(BankAccountRepository bankAccountRepository, AccountOperationRepository accountOperationRepository) {
+	CommandLineRunner commandLineRunner(BankAccountService bankAccountService) {
 		return args -> {
-			BankAccount bankAccount = bankAccountRepository.findById("351f1e29-e8a7-4681-a733-4d2452f760e4").orElse(null);
-			if (bankAccount != null) {
-				System.out.println("Bank account not found");
-				System.out.println(bankAccount.getId());
-				System.out.println(bankAccount.getBalance());
-				System.out.println(bankAccount.getStatus());
-				System.out.println(bankAccount.getCreatedAt());
-				System.out.println(bankAccount.getCustomer().getName());
-				System.out.println(bankAccount.getClass().getSimpleName());
+			Stream.of("Hassan" , "Imane"  , "Mohamed").forEach(name ->{
+				Customer customer = new Customer();
+				customer.setName(name);
+				customer.setEmail(name+"@gmail.com");
+				bankAccountService.saveCustomer(customer);
+			});
 
-				if (bankAccount instanceof CurrentAccount){
-					System.out.println("Over Draft=>"+((CurrentAccount)bankAccount).getOverDraft());
-				}else if (bankAccount instanceof SavingAccount){
-					System.out.println("Rate=>"+((SavingAccount)bankAccount).getInterestRate());
+			bankAccountService.listCustomer().forEach(customer -> {
+				try {
+					bankAccountService.saveCurrentBankAccount(Math.random()*90000 , 9000 ,customer.getId());
+					bankAccountService.saveSavingBankAccount(Math.random()*12000 , 5.5 ,customer.getId());
+//					bankAccountService.listBankAccounts().forEach(account -> {
+//					for (int i = 0 ; i <10 ; i++){
+//						bankAccountService.credit(account.getId() , 10000+Math.random()*12000 , "Credit");
+//					}});
 
+					List<BankAccount> bankAccounts = bankAccountService.listBankAccounts();
+					for (BankAccount bankAccount : bankAccounts) {
+						for (int i =0 ; i<10 ; i++){
+							bankAccountService.credit(bankAccount.getId() , 10000+Math.random()*120000, "Credit");
+							bankAccountService.debit(bankAccount.getId() , 1000+Math.random()*9000, "Debit");
+						}
+					}
+				}catch (CustomersNotFoundException | BalanceNotSufficientException | BankAccountNotFoundException e){
+					e.printStackTrace();
 				}
-				bankAccount.getOperations().forEach(op ->{
-					System.out.println(op.getType() + "\t" + op.getOperationDate() + "\t" + op.getAmount());
-				});
-			}
+			});
 		};
 	}
 
