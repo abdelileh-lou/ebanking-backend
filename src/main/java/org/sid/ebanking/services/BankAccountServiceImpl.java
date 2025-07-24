@@ -3,7 +3,10 @@ package org.sid.ebanking.services;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.sid.ebanking.dtos.BankAccountDTO;
+import org.sid.ebanking.dtos.CurrentBankAccountDTO;
 import org.sid.ebanking.dtos.CustomerDTO;
+import org.sid.ebanking.dtos.SavingBankAccountDTO;
 import org.sid.ebanking.entities.*;
 import org.sid.ebanking.enums.OperationType;
 import org.sid.ebanking.exceptions.BalanceNotSufficientException;
@@ -40,15 +43,16 @@ public class BankAccountServiceImpl implements BankAccountService {
 
 
     @Override
-    public Customer saveCustomer(Customer customer) {
+    public CustomerDTO saveCustomer(CustomerDTO customerDTO) {
         log.info("Saving customer ");
+        Customer customer = bankAccountMapperImpl.fromCustomerDTO(customerDTO);
         Customer saveCustomer =   customerRepository.save(customer);
-        return saveCustomer;
+        return bankAccountMapperImpl.fromCustomer(saveCustomer);
 
     }
 
     @Override
-    public CurrentAccount saveCurrentBankAccount(double initialBalance, double overDraftLong, Long customerId) throws CustomersNotFoundException {
+    public CurrentBankAccountDTO saveCurrentBankAccount(double initialBalance, double overDraftLong, Long customerId) throws CustomersNotFoundException {
 
         Customer customer = customerRepository.findById(customerId).orElse(null);
         if(customer == null)
@@ -67,11 +71,11 @@ public class BankAccountServiceImpl implements BankAccountService {
 
 
 
-        return saveBankAccount;
+        return bankAccountMapperImpl.fromCurrentBankAccount(saveBankAccount);
     }
 
     @Override
-    public SavingAccount saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomersNotFoundException {
+    public SavingBankAccountDTO saveSavingBankAccount(double initialBalance, double interestRate, Long customerId) throws CustomersNotFoundException {
         Customer customer = customerRepository.findById(customerId).orElse(null);
         if(customer == null)
             throw new CustomersNotFoundException("Customer not found");
@@ -89,7 +93,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
 
 
-        return savingAccount;
+        return bankAccountMapperImpl.fromSavingBankAccount(savingAccount);
     }
 
 
@@ -104,16 +108,27 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     @Override
-    public BankAccount getBankAccount(String accountId) throws BankAccountNotFoundException {
+    public BankAccountDTO getBankAccount(String accountId) throws BankAccountNotFoundException {
         BankAccount bankAccount =  bankAccountRepository.findById(accountId).orElseThrow(()->new BankAccountNotFoundException("BankAccount not Found"));
-        return  bankAccount;
+
+        if(bankAccount instanceof SavingAccount){
+            SavingAccount savingAccount = (SavingAccount) bankAccount;
+            return bankAccountMapperImpl.fromSavingBankAccount(savingAccount);
+        }else{
+
+            CurrentAccount currentAccount = (CurrentAccount) bankAccount;
+            return bankAccountMapperImpl.fromCurrentBankAccount(currentAccount);
+
+        }
+
 
 
     }
 
     @Override
     public void debit(String accountId, double amount, String description) throws BankAccountNotFoundException, BalanceNotSufficientException {
-        BankAccount bankAccount = getBankAccount(accountId);
+        BankAccount bankAccount =  bankAccountRepository.findById(accountId).orElseThrow(()->new BankAccountNotFoundException("BankAccount not Found"));
+
         if (bankAccount.getBalance() < amount)
             throw new BalanceNotSufficientException("Balance not sufficient");
 
@@ -134,7 +149,7 @@ public class BankAccountServiceImpl implements BankAccountService {
 
     @Override
     public void credit(String accountId, double amount, String description) throws  BankAccountNotFoundException {
-        BankAccount bankAccount = getBankAccount(accountId);
+        BankAccount bankAccount =  bankAccountRepository.findById(accountId).orElseThrow(()->new BankAccountNotFoundException("BankAccount not Found"));
         AccountOperation accountOperation = new AccountOperation();
         accountOperation.setType(OperationType.CREDIT);
         accountOperation.setAmount(amount);
@@ -157,7 +172,42 @@ public class BankAccountServiceImpl implements BankAccountService {
     }
 
     @Override
-    public List <BankAccount> listBankAccounts(){
-        return bankAccountRepository.findAll();
+    public List <BankAccountDTO> listBankAccounts(){
+        List<BankAccount> bankAccounts = bankAccountRepository.findAll();
+        List<BankAccountDTO> bankAccountDTOs = bankAccounts.stream().map(bankAccount -> {
+            if (bankAccount instanceof SavingAccount) {
+                SavingAccount savingAccount = (SavingAccount) bankAccount;
+                return bankAccountMapperImpl.fromSavingBankAccount(savingAccount);
+            } else {
+                CurrentAccount currentAccount = (CurrentAccount) bankAccount;
+                return bankAccountMapperImpl.fromCurrentBankAccount(currentAccount);
+            }
+        }).collect(Collectors.toList());
+
+
+        return bankAccountDTOs;
+    }
+
+    @Override
+    public CustomerDTO getCustomer(Long customerId) throws CustomersNotFoundException {
+         customerRepository.findById(customerId)
+                                 .orElseThrow(() ->new CustomersNotFoundException("Customer Not Found"));
+         return bankAccountMapperImpl.fromCustomer(customerRepository.findById(customerId).get());
+    }
+
+
+    @Override
+    public CustomerDTO updateCustomer(CustomerDTO customerDTO) {
+        log.info("Saving customer ");
+        Customer customer = bankAccountMapperImpl.fromCustomerDTO(customerDTO);
+        Customer saveCustomer =   customerRepository.save(customer);
+        return bankAccountMapperImpl.fromCustomer(saveCustomer);
+
+    }
+
+    @Override
+    public void deleteCustomer(Long customerId)  {
+        customerRepository.deleteById(customerId);
+
     }
 }
