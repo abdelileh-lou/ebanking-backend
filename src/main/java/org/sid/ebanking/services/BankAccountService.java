@@ -1,9 +1,6 @@
 package org.sid.ebanking.services;
 
-import org.sid.ebanking.dtos.BankAccountDTO;
-import org.sid.ebanking.dtos.CurrentBankAccountDTO;
-import org.sid.ebanking.dtos.CustomerDTO;
-import org.sid.ebanking.dtos.SavingBankAccountDTO;
+import org.sid.ebanking.dtos.*;
 import org.sid.ebanking.entities.BankAccount;
 
 import org.sid.ebanking.exceptions.BalanceNotSufficientException;
@@ -27,4 +24,6 @@ public interface BankAccountService {
     CustomerDTO getCustomer(Long customerId) throws CustomersNotFoundException;
     CustomerDTO updateCustomer(CustomerDTO customerDTO);
     void deleteCustomer(Long customerId);
+    List<AccountOperationDTO> accountHistory(String accountId);
+    AccountHistoryDTO getAccountHistory(String accountId, int page, int size) throws BankAccountNotFoundException;
 }
