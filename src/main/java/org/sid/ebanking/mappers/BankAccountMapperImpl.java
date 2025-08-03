@@ -62,18 +62,7 @@ public class BankAccountMapperImpl {
 
 
 
-//    public BankAccountDTO fromBankAccount(BankAccount bankAccount) {
-//        BankAccountDTO bankAccountDTO = new BankAccountDTO() ;
-//        BeanUtils.copyProperties(bankAccount,bankAccountDTO);
-//        bankAccountDTO.setCustomerDTO(fromCustomer(bankAccount.getCustomer()));
-//        return bankAccountDTO;
-//    }
-//
-//    public BankAccount fromBankAccountDTO(BankAccountDTO bankAccountDTO){
-//        BankAccount bankAccount = new BankAccount();
-//        BeanUtils.copyProperties(bankAccountDTO,bankAccount);
-//        return bankAccount;
-//    }
+
 
 
 
